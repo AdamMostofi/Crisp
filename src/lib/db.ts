@@ -6,7 +6,7 @@ let db: Client | null = null;
 let initPromise: Promise<void> | null = null;
 
 function getDbDir(): string {
-  return process.env.CRISP_DB_DIR ?? path.join(process.cwd(), 'data');
+  return process.env.CRISP_DB_DIR ?? path.join(/* turbopackIgnore: true */ process.cwd(), 'data');
 }
 
 function getLocalDbPath(): string {
