@@ -97,7 +97,7 @@ export default function Home() {
         <main className="w-full max-w-[640px] mx-auto flex flex-col items-center gap-10">
         {/* Brand */}
         <div className="text-center">
-          <h1 className="text-[clamp(2rem,4vw,3rem)] font-bold tracking-[-0.02em] text-balance">
+          <h1 className="text-[clamp(2rem,4vw,3rem)] font-bold tracking-[-0.01em] text-balance">
             Crisp
           </h1>
           <p className="mt-2 text-sm text-muted">
@@ -123,9 +123,10 @@ export default function Home() {
             type="submit"
             disabled={loading}
             className="w-full py-3 rounded-[6px] bg-primary text-white text-sm font-semibold
-                       hover:bg-primary-hover active:scale-[0.97]
+                       hover:bg-primary-hover hover:shadow-[0_0_12px_var(--color-primary)] hover:scale-[1.02]
+                       active:scale-[0.95] active:shadow-[0_0_6px_var(--color-primary)]
                        disabled:opacity-40 disabled:cursor-not-allowed disabled:active:scale-100
-                       transition-[background-color,opacity,transform] duration-[var(--duration-fast)] ease-out"
+                       transition-[background-color,opacity,transform,box-shadow] duration-[var(--duration-fast)] ease-out"
           >
             {loading ? "Cleaning…" : "Clean & Shorten"}
           </button>
