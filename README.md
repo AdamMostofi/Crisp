@@ -8,6 +8,7 @@
 [![Next.js](https://img.shields.io/badge/Built%20with-Next.js-000000?style=flat-square&logo=next.js)](https://nextjs.org)
 [![Tailwind CSS](https://img.shields.io/badge/Style-Tailwind%20v4-06b6d4?style=flat-square&logo=tailwindcss)](https://tailwindcss.com)
 [![TypeScript](https://img.shields.io/badge/TypeScript-3178c6?style=flat-square&logo=typescript&logoColor=white)](https://typescriptlang.org)
+[![Live](https://img.shields.io/badge/Live-crisp.vercel.app-22c55e?style=flat-square)](https://crisp-xi.vercel.app)
 
 ---
 
@@ -15,7 +16,7 @@ Crisp strips tracking junk from URLs and returns a short, clean link — no acco
 
 ```text
 Before: https://example.com/page?utm_source=twitter&utm_medium=social&fbclid=abc123&ref=newsletter
-After:  https://crisp.dev/s/Ab3XyZ
+After:  https://crisp-xi.vercel.app/s/Ab3XyZ
 ```
 
 </div>
@@ -40,7 +41,7 @@ npm install
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000). Paste a messy URL. Done.
+Open [http://localhost:3000](http://localhost:3000) or try the live instance at [crisp-xi.vercel.app](https://crisp-xi.vercel.app). Paste a messy URL. Done.
 
 ```bash
 npm test          # run tests
