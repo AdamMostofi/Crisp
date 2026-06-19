@@ -38,7 +38,7 @@ export interface AnimatedGridPatternProps extends ComponentPropsWithoutRef<"div"
   gridLineOpacity?: number
 }
 
-const GLOW_OPACITIES = [0, 0.45, 0.18, 0.08, 0.04]
+const GLOW_OPACITIES = [0.5, 0.25, 0.1, 0.04]
 
 export function AnimatedGridPattern({
   children,
@@ -175,8 +175,23 @@ export function AnimatedGridPattern({
         {/* Glowing cells */}
         {visibleCells.map(cell => {
           const isHovered = cell.distance === 0
-          const opacityIndex = Math.min(cell.distance, GLOW_OPACITIES.length - 1)
-          const opacity = GLOW_OPACITIES[opacityIndex] ?? 0
+          if (isHovered) {
+            return (
+              <rect
+                key={`${cell.col}-${cell.row}`}
+                x={cell.col * width + 1}
+                y={cell.row * height + 1}
+                width={width - 1}
+                height={height - 1}
+                fill={primaryColor}
+                fillOpacity={1}
+                className="transition-[fill-opacity] duration-150 ease-out"
+              />
+            )
+          }
+
+          const glowIndex = Math.min(cell.distance - 1, GLOW_OPACITIES.length - 1)
+          const opacity = GLOW_OPACITIES[glowIndex] ?? 0
           if (opacity === 0) return null
 
           return (
@@ -186,7 +201,7 @@ export function AnimatedGridPattern({
               y={cell.row * height + 1}
               width={width - 1}
               height={height - 1}
-              fill={isHovered ? primaryColor : resolvedGlowColor}
+              fill={resolvedGlowColor}
               fillOpacity={opacity}
               className="transition-[fill-opacity] duration-150 ease-out"
             />
