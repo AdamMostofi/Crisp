@@ -16,8 +16,8 @@
   --color-tag-bg: oklch(0.72 0.14 30 / 0.12);
   --color-code-bg: oklch(0.965 0 0);
 
-  --font-sans: "Spline Sans", system-ui, sans-serif;
-  --font-mono: "Spline Sans Mono", ui-monospace, monospace;
+  --font-sans: "Sora", system-ui, sans-serif;
+  --font-mono: "Sora", ui-monospace, monospace;
 
   --duration-normal: 300ms;
   --duration-fast: 200ms;
@@ -74,7 +74,7 @@ body {
   font-family: var(--font-sans);
 }
 
-/* Spline Sans Mono for monospace elements */
+/* Sora for monospace elements */
 .font-mono,
 input,
 code {

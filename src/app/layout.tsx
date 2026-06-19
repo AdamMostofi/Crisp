@@ -1,17 +1,17 @@
 import type { Metadata } from "next";
-import { Spline_Sans, Spline_Sans_Mono } from "next/font/google";
+import { Sora } from "next/font/google";
 import "./globals.css";
 
-const splineSans = Spline_Sans({
+const soraSans = Sora({
   subsets: ["latin"],
   variable: "--font-sans",
   weight: ["400", "500", "600", "700"],
 });
 
-const splineMono = Spline_Sans_Mono({
+const soraMono = Sora({
   subsets: ["latin"],
   variable: "--font-mono",
-  weight: ["400", "500"],
+  weight: ["400", "500", "600", "700"],
 });
 
 export const metadata: Metadata = {
@@ -26,11 +26,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${splineSans.variable} ${splineMono.variable}`}>
-      <body className="antialiased">{children}{/* impeccable-live-start */}
-<script src="http://localhost:8400/live.js"></script>
-{/* impeccable-live-end */}
-</body>
+    <html lang="en" className={`${soraSans.variable} ${soraMono.variable}`}>
+      <body className="antialiased">{children}</body>
     </html>
   );
 }
