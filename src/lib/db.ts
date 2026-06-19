@@ -62,7 +62,7 @@ export async function getLink(shortCode: string): Promise<string | null> {
     sql: 'SELECT clean_url FROM links WHERE short_code = ?',
     args: [shortCode],
   });
-  const row = result.rows[0] as { clean_url: string } | undefined;
+  const row = result.rows[0] as unknown as { clean_url: string } | undefined;
   return row?.clean_url ?? null;
 }
 
