@@ -1,50 +1,40 @@
-import Database from 'better-sqlite3';
+import { createClient } from '@libsql/client';
+import type { Client } from '@libsql/client';
 import path from 'path';
-import fs from 'fs';
 
-const DB_DIR = process.env.CRISP_DB_DIR ?? path.join(process.cwd(), 'data');
-const DB_PATH = path.join(DB_DIR, 'crisp.db');
+let db: Client | null = null;
+let initPromise: Promise<void> | null = null;
 
-let db: Database.Database | null = null;
+function getDbDir(): string {
+  return process.env.CRISP_DB_DIR ?? path.join(process.cwd(), 'data');
+}
 
-export function getDb(): Database.Database {
+function getLocalDbPath(): string {
+  return path.join(getDbDir(), 'crisp.db');
+}
+
+function getOrInitDb(): Client {
   if (!db) {
-    if (!fs.existsSync(DB_DIR)) {
-      fs.mkdirSync(DB_DIR, { recursive: true });
+    if (process.env.TURSO_DB_URL) {
+      db = createClient({
+        url: process.env.TURSO_DB_URL,
+        authToken: process.env.TURSO_AUTH_TOKEN,
+      });
+    } else {
+      db = createClient({ url: `file:${getLocalDbPath()}` });
     }
-    db = new Database(DB_PATH);
-    db.pragma('journal_mode = WAL');
-    initSchema(db);
+    initPromise = initSchema();
   }
   return db;
 }
 
-/** Reinitializes the database with a fresh file. Used in tests. */
-export function resetDb(testDir: string): void {
-  if (db) {
-    db.close();
-    db = null;
-  }
-  const testDbPath = path.join(testDir, 'crisp.db');
-  if (fs.existsSync(testDbPath)) {
-    fs.rmSync(testDbPath, { force: true });
-  }
-  const testWalPath = path.join(testDir, 'crisp.db-wal');
-  if (fs.existsSync(testWalPath)) {
-    fs.rmSync(testWalPath, { force: true });
-  }
-  const testShmPath = path.join(testDir, 'crisp.db-shm');
-  if (fs.existsSync(testShmPath)) {
-    fs.rmSync(testShmPath, { force: true });
-  }
-}
-
-function initSchema(database: Database.Database): void {
-  database.exec(`
+async function initSchema(): Promise<void> {
+  const database = getOrInitDb();
+    await database.execute(`
     CREATE TABLE IF NOT EXISTS links (
       short_code TEXT PRIMARY KEY,
       clean_url TEXT NOT NULL,
-      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
     )
   `);
 }
@@ -55,22 +45,42 @@ export interface LinkRow {
   created_at: string;
 }
 
-export function insertLink(shortCode: string, cleanUrl: string): boolean {
-  const database = getDb();
-  const stmt = database.prepare(
-    'INSERT OR IGNORE INTO links (short_code, clean_url) VALUES (?, ?)'
-  );
-  const result = stmt.run(shortCode, cleanUrl);
-  return result.changes > 0;
+export async function insertLink(shortCode: string, cleanUrl: string): Promise<boolean> {
+  const database = getOrInitDb();
+  if (initPromise) await initPromise;
+  const result = await database.execute({
+    sql: 'INSERT OR IGNORE INTO links (short_code, clean_url) VALUES (?, ?)',
+    args: [shortCode, cleanUrl],
+  });
+  return result.rowsAffected > 0;
 }
 
-export function getLink(shortCode: string): string | null {
-  const database = getDb();
-  const stmt = database.prepare(
-    'SELECT clean_url FROM links WHERE short_code = ?'
-  );
-  const row = stmt.get(shortCode) as { clean_url: string } | undefined;
+export async function getLink(shortCode: string): Promise<string | null> {
+  const database = getOrInitDb();
+  if (initPromise) await initPromise;
+  const result = await database.execute({
+    sql: 'SELECT clean_url FROM links WHERE short_code = ?',
+    args: [shortCode],
+  });
+  const row = result.rows[0] as { clean_url: string } | undefined;
   return row?.clean_url ?? null;
+}
+
+export async function resetDb(testDir?: string): Promise<void> {
+  if (db) {
+    db.close();
+    db = null;
+  }
+  initPromise = null;
+  if (testDir) {
+    const { rmSync, existsSync } = await import('fs');
+    const testDbPath = path.join(testDir, 'crisp.db');
+    for (const file of [testDbPath, `${testDbPath}-wal`, `${testDbPath}-shm`]) {
+      if (existsSync(file)) {
+        rmSync(file, { force: true });
+      }
+    }
+  }
 }
 
 export function closeDb(): void {
@@ -78,4 +88,5 @@ export function closeDb(): void {
     db.close();
     db = null;
   }
+  initPromise = null;
 }

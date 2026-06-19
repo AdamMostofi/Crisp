@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { sanitizeUrl, getStrippedParams } from '@/lib/sanitize';
 import { generateShortCode } from '@/lib/codegen';
-import { getDb } from '@/lib/db';
+import { insertLink, getLink } from '@/lib/db';
 
 // ── Edge case: sanitizeUrl ─────────────────────────────────────
 
@@ -140,7 +140,7 @@ describe('generateShortCode', () => {
 // ── Integration: shorten + store + redirect cycle ──────────────
 
 describe('shorten and redirect cycle', () => {
-  it('stores a link and retrieves it for redirect', () => {
+  it('stores a link and retrieves it for redirect', async () => {
     const messyUrl =
       'https://example.com/page?utm_source=twitter&fbclid=abc&keep=ok';
     const cleanUrl = sanitizeUrl(messyUrl);
@@ -149,19 +149,12 @@ describe('shorten and redirect cycle', () => {
     const shortCode = generateShortCode(cleanUrl!);
 
     // Insert into DB
-    const db = getDb();
-    const stmt = db.prepare(
-      'INSERT OR IGNORE INTO links (short_code, clean_url) VALUES (?, ?)'
-    );
-    stmt.run(shortCode, cleanUrl);
+    const inserted = await insertLink(shortCode, cleanUrl!);
+    expect(inserted).toBe(true);
 
     // Retrieve from DB
-    const getStmt = db.prepare(
-      'SELECT clean_url FROM links WHERE short_code = ?'
-    );
-    const row = getStmt.get(shortCode) as { clean_url: string } | undefined;
-    expect(row).toBeDefined();
-    expect(row!.clean_url).toBe(cleanUrl);
+    const storedUrl = await getLink(shortCode);
+    expect(storedUrl).toBe(cleanUrl);
 
     // Verify the cycle: messy URL → clean → short code → stored → retrievable
     const stripped = getStrippedParams(messyUrl);

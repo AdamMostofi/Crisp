@@ -27,18 +27,18 @@ export async function POST(request: NextRequest) {
 
     // Generate short code (with collision resolution)
     let shortCode = generateShortCode(cleanUrl);
-    let inserted = insertLink(shortCode, cleanUrl);
+    let inserted = await insertLink(shortCode, cleanUrl);
     let saltIndex = 1;
 
     while (!inserted && saltIndex < 10) {
       // Collision: same code, different URL → salt and re-hash
-      const existingUrl = getLink(shortCode);
+      const existingUrl = await getLink(shortCode);
       if (existingUrl === cleanUrl) {
         // Same URL, already exists — deterministic dedup
         break;
       }
       shortCode = generateShortCode(cleanUrl, String(saltIndex));
-      inserted = insertLink(shortCode, cleanUrl);
+      inserted = await insertLink(shortCode, cleanUrl);
       saltIndex++;
     }
 
@@ -46,7 +46,7 @@ export async function POST(request: NextRequest) {
       // Existing record — fetch the real code if it exists
       // (this happens when the same URL was submitted before)
       // We need to find the already-stored code
-      const existing = getLink(shortCode);
+      const existing = await getLink(shortCode);
       if (existing !== cleanUrl) {
         return NextResponse.json(
           { error: 'failed to create short link after collision resolution' },

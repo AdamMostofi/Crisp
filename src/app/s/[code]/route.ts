@@ -7,7 +7,7 @@ export async function GET(
 ) {
   const { code } = await params;
 
-  const cleanUrl = getLink(code);
+  const cleanUrl = await getLink(code);
 
   if (!cleanUrl) {
     return new NextResponse(
