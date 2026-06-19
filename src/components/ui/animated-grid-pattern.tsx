@@ -43,6 +43,8 @@ export interface AnimatedGridPatternProps extends ComponentPropsWithoutRef<"div"
 const GLOW_OPACITIES = [0.5, 0.25, 0.1, 0.04]
 
 const SQRT2 = 1.41421356237
+const COS45 = SQRT2 / 2
+const SIN45 = SQRT2 / 2
 
 export function AnimatedGridPattern({
   children,
@@ -72,47 +74,54 @@ export function AnimatedGridPattern({
   const cx = dimensions.width / 2
   const cy = dimensions.height / 2
 
-  // When rotated, the grid visual cell count changes because the pattern
-  // is rotated 45°, so we compute a larger virtual grid to cover corners.
-  const rotScale = rotated ? SQRT2 : 1
-  const virtualWidth = dimensions.width * rotScale
-  const virtualHeight = dimensions.height * rotScale
-  const cols = Math.floor(virtualWidth / width)
-  const rows = Math.floor(virtualHeight / height)
-
-  // --- Mouse tracking with optional inverse rotation ---
+  // When rotated, the pattern rect and highlights share a single rotated group
+  // `rotate(45, cx, cy)` so they perfectly align. The pattern rect is oversized
+  // to cover viewport corners after rotation.
+  const span = rotated
+    ? Math.ceil((dimensions.width + dimensions.height) / Math.min(width, height))
+    : Math.max(
+        Math.ceil(dimensions.width / width),
+        Math.ceil(dimensions.height / height),
+      )
+  const halfSpan = Math.ceil(span / 2) + glowRadius
+  const minCol = -halfSpan
+  const maxCol = halfSpan
+  const minRow = -halfSpan
+  const maxRow = halfSpan
 
   const handleMouseMove = useCallback(
     (e: React.MouseEvent) => {
       if (!containerRef.current) return
       const rect = containerRef.current.getBoundingClientRect()
-      let mouseX = e.clientX - rect.left + containerRef.current.scrollLeft
-      let mouseY = e.clientY - rect.top + containerRef.current.scrollTop
+      const mouseX = e.clientX - rect.left + containerRef.current.scrollLeft
+      const mouseY = e.clientY - rect.top + containerRef.current.scrollTop
 
+      // Convert screen coords to group/pattern space
+      let gx: number, gy: number
       if (rotated) {
-        // Inverse rotation by -45° around center to map screen coords → pattern space
+        // Inverse of rotate(45, cx, cy):
+        // 1. translate -center, 2. rotate -45°, 3. translate +center
         const dx = mouseX - cx
         const dy = mouseY - cy
-        const cos45 = SQRT2 / 2
-        const sin45 = SQRT2 / 2
-        mouseX = dx * cos45 + dy * sin45 + virtualWidth / 2
-        mouseY = -dx * sin45 + dy * cos45 + virtualHeight / 2
+        gx = dx * COS45 + dy * SIN45 + cx
+        gy = -dx * SIN45 + dy * COS45 + cy
+      } else {
+        gx = mouseX
+        gy = mouseY
       }
 
-      const col = Math.floor(mouseX / width)
-      const row = Math.floor(mouseY / height)
-      if (col >= 0 && col < cols && row >= 0 && row < rows) {
+      const col = Math.floor(gx / width)
+      const row = Math.floor(gy / height)
+      if (col >= minCol && col <= maxCol && row >= minRow && row <= maxRow) {
         setHoveredCell({ col, row })
       }
     },
-    [width, height, cols, rows, rotated, cx, cy, virtualWidth, virtualHeight],
+    [width, height, rotated, cx, cy, minCol, maxCol, minRow, maxRow],
   )
 
   const handleMouseLeave = useCallback(() => {
     setHoveredCell(null)
   }, [])
-
-  // --- Compute visible glowing cells (only render within glowRadius of cursor) ---
 
   const visibleCells = useMemo(() => {
     if (!hoveredCell) return []
@@ -121,7 +130,7 @@ export function AnimatedGridPattern({
       for (let dc = -glowRadius; dc <= glowRadius; dc++) {
         const col = hoveredCell.col + dc
         const row = hoveredCell.row + dr
-        if (col >= 0 && col < cols && row >= 0 && row < rows) {
+        if (col >= minCol && col <= maxCol && row >= minRow && row <= maxRow) {
           cells.push({
             col,
             row,
@@ -131,7 +140,7 @@ export function AnimatedGridPattern({
       }
     }
     return cells
-  }, [hoveredCell, glowRadius, cols, rows])
+  }, [hoveredCell, glowRadius, minCol, maxCol, minRow, maxRow])
 
   // --- Resize observer ---
 
@@ -161,6 +170,63 @@ export function AnimatedGridPattern({
 
   const resolvedGlowColor = glowColor || primaryColor
 
+  // Shared defs (not affected by rotation — patternUnits="userSpaceOnUse"
+  // resolves inside whichever coordinate system the <rect> lives in).
+  const defs = (
+    <defs>
+      <pattern
+        id={id}
+        width={width}
+        height={height}
+        patternUnits="userSpaceOnUse"
+        x={x}
+        y={y}
+      >
+        <path
+          d={`M.5 ${height}V.5H${width}`}
+          fill="none"
+          stroke={gridLineColor ?? "currentColor"}
+          strokeWidth={strokeWidth}
+          strokeOpacity={gridLineOpacity}
+          strokeDasharray={strokeDasharray}
+        />
+      </pattern>
+    </defs>
+  )
+
+  const cellRects = visibleCells.map(cell => {
+    const isHovered = cell.distance === 0
+    if (isHovered) {
+      return (
+        <rect
+          key={`${cell.col}-${cell.row}`}
+          x={cell.col * width + 1}
+          y={cell.row * height + 1}
+          width={width - 1}
+          height={height - 1}
+          fill={primaryColor}
+          fillOpacity={1}
+          className="transition-[fill-opacity] duration-150 ease-out"
+        />
+      )
+    }
+    const glowIndex = Math.min(cell.distance - 1, GLOW_OPACITIES.length - 1)
+    const opacity = GLOW_OPACITIES[glowIndex] ?? 0
+    if (opacity === 0) return null
+    return (
+      <rect
+        key={`${cell.col}-${cell.row}`}
+        x={cell.col * width + 1}
+        y={cell.row * height + 1}
+        width={width - 1}
+        height={height - 1}
+        fill={resolvedGlowColor}
+        fillOpacity={opacity}
+        className="transition-[fill-opacity] duration-150 ease-out"
+      />
+    )
+  })
+
   return (
     <div
       ref={containerRef}
@@ -173,67 +239,28 @@ export function AnimatedGridPattern({
       {...props}
     >
       <svg className="absolute inset-0 h-full w-full" aria-hidden="true">
-        <defs>
-          <pattern
-            id={id}
-            width={width}
-            height={height}
-            patternUnits="userSpaceOnUse"
-            x={x}
-            y={y}
-            patternTransform={rotated ? `rotate(45)` : undefined}
-          >
-            <path
-              d={`M.5 ${height}V.5H${width}`}
-              fill="none"
-              stroke={gridLineColor ?? "currentColor"}
-              strokeWidth={strokeWidth}
-              strokeOpacity={gridLineOpacity}
-              strokeDasharray={strokeDasharray}
-            />
-          </pattern>
-        </defs>
+        {defs}
 
-        {/* Base grid pattern */}
-        <rect width="100%" height="100%" fill={`url(#${id})`} />
-
-        {/* Glowing cells */}
-        <g transform={rotated ? `rotate(45, ${cx}, ${cy})` : undefined}>
-        {visibleCells.map(cell => {
-          const isHovered = cell.distance === 0
-          if (isHovered) {
-            return (
-              <rect
-                key={`${cell.col}-${cell.row}`}
-                x={cell.col * width + 1}
-                y={cell.row * height + 1}
-                width={width - 1}
-                height={height - 1}
-                fill={primaryColor}
-                fillOpacity={1}
-                className="transition-[fill-opacity] duration-150 ease-out"
-              />
-            )
-          }
-
-          const glowIndex = Math.min(cell.distance - 1, GLOW_OPACITIES.length - 1)
-          const opacity = GLOW_OPACITIES[glowIndex] ?? 0
-          if (opacity === 0) return null
-
-          return (
+        {rotated ? (
+          // Single shared rotation group: pattern filled rect + highlights
+          // are BOTH rotated by the same transform around the same center.
+          // This guarantees pixel-perfect alignment.
+          <g transform={`rotate(45, ${cx}, ${cy})`}>
             <rect
-              key={`${cell.col}-${cell.row}`}
-              x={cell.col * width + 1}
-              y={cell.row * height + 1}
-              width={width - 1}
-              height={height - 1}
-              fill={resolvedGlowColor}
-              fillOpacity={opacity}
-              className="transition-[fill-opacity] duration-150 ease-out"
+              x={-dimensions.width}
+              y={-dimensions.height}
+              width={dimensions.width * 3}
+              height={dimensions.height * 3}
+              fill={`url(#${id})`}
             />
-          )
-        })}
-        </g>
+            {cellRects}
+          </g>
+        ) : (
+          <>
+            <rect width="100%" height="100%" fill={`url(#${id})`} />
+            {cellRects}
+          </>
+        )}
       </svg>
       {children}
     </div>
