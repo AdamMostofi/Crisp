@@ -1,0 +1,82 @@
+@import "tailwindcss";
+
+@theme inline {
+  --color-bg: oklch(1 0 0);
+  --color-surface: oklch(0.965 0.005 160);
+  --color-ink: oklch(0.1 0.008 160);
+  --color-primary: oklch(0.55 0.145 150);
+  --color-primary-hover: oklch(0.48 0.145 150);
+  --color-accent: oklch(0.72 0.14 30);
+  --color-accent-hover: oklch(0.65 0.14 30);
+  --color-muted: oklch(0.4 0.012 160);
+  --color-border: oklch(0.88 0.008 160);
+  --color-error: oklch(0.55 0.18 25);
+  --color-error-bg: oklch(0.95 0.025 25);
+  --color-error-border: oklch(0.85 0.06 25);
+  --color-tag-bg: oklch(0.72 0.14 30 / 0.12);
+  --color-code-bg: oklch(0.965 0 0);
+
+  --font-sans: "Spline Sans", system-ui, sans-serif;
+  --font-mono: "Spline Sans Mono", ui-monospace, monospace;
+
+  --duration-normal: 300ms;
+  --duration-fast: 200ms;
+
+  --animate-fade-up: fade-up var(--duration-normal) ease-out;
+  --animate-fade-in: fade-in var(--duration-fast) ease-out;
+}
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-bg: oklch(0.08 0 0);
+    --color-surface: oklch(0.12 0.005 160);
+    --color-ink: oklch(0.9 0.008 160);
+    --color-primary: oklch(0.65 0.13 150);
+    --color-primary-hover: oklch(0.72 0.13 150);
+    --color-accent: oklch(0.78 0.11 30);
+    --color-accent-hover: oklch(0.7 0.11 30);
+    --color-muted: oklch(0.55 0.01 160);
+    --color-border: oklch(0.2 0.008 160);
+    --color-error: oklch(0.65 0.16 25);
+    --color-error-bg: oklch(0.15 0.025 25);
+    --color-error-border: oklch(0.25 0.06 25);
+    --color-tag-bg: oklch(0.78 0.11 30 / 0.15);
+    --color-code-bg: oklch(0.1 0.005 160);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --duration-normal: 0ms;
+    --duration-fast: 0ms;
+  }
+}
+
+body {
+  background: var(--color-bg);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+}
+
+/* Spline Sans Mono for monospace elements */
+.font-mono,
+input,
+code {
+  font-family: var(--font-mono);
+}
