@@ -2,7 +2,6 @@
 
 import {
   type PropsWithChildren,
-  useCallback,
   useEffect,
   useId,
   useMemo,
@@ -91,40 +90,6 @@ export function AnimatedGridPattern({
   const minRow = centerRow - halfSpan
   const maxRow = centerRow + halfSpan
 
-  const handleMouseMove = useCallback(
-    (e: React.MouseEvent) => {
-      if (!containerRef.current) return
-      const rect = containerRef.current.getBoundingClientRect()
-      const mouseX = e.clientX - rect.left + containerRef.current.scrollLeft
-      const mouseY = e.clientY - rect.top + containerRef.current.scrollTop
-
-      // Convert screen coords to group/pattern space
-      let gx: number, gy: number
-      if (rotated) {
-        // Inverse of rotate(45, cx, cy):
-        // 1. translate -center, 2. rotate -45°, 3. translate +center
-        const dx = mouseX - cx
-        const dy = mouseY - cy
-        gx = dx * COS45 + dy * SIN45 + cx
-        gy = -dx * SIN45 + dy * COS45 + cy
-      } else {
-        gx = mouseX
-        gy = mouseY
-      }
-
-      const col = Math.floor(gx / width)
-      const row = Math.floor(gy / height)
-      if (col >= minCol && col <= maxCol && row >= minRow && row <= maxRow) {
-        setHoveredCell({ col, row })
-      }
-    },
-    [width, height, rotated, cx, cy, minCol, maxCol, minRow, maxRow],
-  )
-
-  const handleMouseLeave = useCallback(() => {
-    setHoveredCell(null)
-  }, [])
-
   const visibleCells = useMemo(() => {
     if (!hoveredCell) return []
     const cells: { col: number; row: number; distance: number }[] = []
@@ -143,6 +108,54 @@ export function AnimatedGridPattern({
     }
     return cells
   }, [hoveredCell, glowRadius, minCol, maxCol, minRow, maxRow])
+
+  // Window mousemove listener — decoupled from element events so the live picker is not blocked.
+
+  useEffect(() => {
+    const onMouseMove = (e: MouseEvent) => {
+      const el = containerRef.current
+      if (!el) return
+      const rect = el.getBoundingClientRect()
+      const mouseX = e.clientX - rect.left + el.scrollLeft
+      const mouseY = e.clientY - rect.top + el.scrollTop
+
+      if (
+        mouseX < 0 ||
+        mouseY < 0 ||
+        mouseX > rect.width ||
+        mouseY > rect.height
+      ) {
+        setHoveredCell(null)
+        return
+      }
+
+      // Convert screen coords to group/pattern space
+      let gx: number, gy: number
+      if (rotated) {
+        const dx = mouseX - cx
+        const dy = mouseY - cy
+        gx = dx * COS45 + dy * SIN45 + cx
+        gy = -dx * SIN45 + dy * COS45 + cy
+      } else {
+        gx = mouseX
+        gy = mouseY
+      }
+
+      const col = Math.floor(gx / width)
+      const row = Math.floor(gy / height)
+      if (
+        col >= minCol &&
+        col <= maxCol &&
+        row >= minRow &&
+        row <= maxRow
+      ) {
+        setHoveredCell({ col, row })
+      }
+    }
+
+    window.addEventListener("mousemove", onMouseMove, { passive: true })
+    return () => window.removeEventListener("mousemove", onMouseMove)
+  }, [width, height, rotated, cx, cy, minCol, maxCol, minRow, maxRow])
 
   // --- Resize observer ---
 
@@ -236,11 +249,9 @@ export function AnimatedGridPattern({
         "relative overflow-hidden",
         className,
       )}
-      onMouseMove={handleMouseMove}
-      onMouseLeave={handleMouseLeave}
       {...props}
     >
-      <svg className="absolute inset-0 h-full w-full" aria-hidden="true">
+      <svg className="pointer-events-none absolute inset-0 h-full w-full" aria-hidden="true">
         {defs}
 
         {rotated ? (
