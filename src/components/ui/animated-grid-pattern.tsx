@@ -24,6 +24,10 @@ export interface AnimatedGridPatternProps extends ComponentPropsWithoutRef<"div"
   y?: number
   /** Stroke dash array (default: 0) */
   strokeDasharray?: number
+  /** Grid line stroke-width (default: 0.5 — hairline) */
+  strokeWidth?: number
+  /** Grid line color (default: currentColor) */
+  gridLineColor?: string
   /** CSS color for the hovered cell (default: currentColor) */
   primaryColor?: string
   /** CSS color for adjacent cells (default: same as primaryColor) */
@@ -43,11 +47,13 @@ export function AnimatedGridPattern({
   x = -1,
   y = -1,
   strokeDasharray = 0,
+  strokeWidth = 0.5,
+  gridLineColor,
   className,
   primaryColor = "currentColor",
   glowColor,
   glowRadius = 2,
-  gridLineOpacity = 0.08,
+  gridLineOpacity = 0.15,
   ...props
 }: PropsWithChildren<AnimatedGridPatternProps>) {
   const id = useId()
@@ -155,7 +161,8 @@ export function AnimatedGridPattern({
             <path
               d={`M.5 ${height}V.5H${width}`}
               fill="none"
-              stroke="currentColor"
+              stroke={gridLineColor ?? "currentColor"}
+              strokeWidth={strokeWidth}
               strokeOpacity={gridLineOpacity}
               strokeDasharray={strokeDasharray}
             />
