@@ -84,10 +84,12 @@ export function AnimatedGridPattern({
         Math.ceil(dimensions.height / height),
       )
   const halfSpan = Math.ceil(span / 2) + glowRadius
-  const minCol = -halfSpan
-  const maxCol = halfSpan
-  const minRow = -halfSpan
-  const maxRow = halfSpan
+  const centerCol = rotated ? Math.floor(cx / width) : 0
+  const centerRow = rotated ? Math.floor(cy / height) : 0
+  const minCol = centerCol - halfSpan
+  const maxCol = centerCol + halfSpan
+  const minRow = centerRow - halfSpan
+  const maxRow = centerRow + halfSpan
 
   const handleMouseMove = useCallback(
     (e: React.MouseEvent) => {
