@@ -39,7 +39,7 @@ export interface AnimatedGridPatternProps extends ComponentPropsWithoutRef<"div"
   rotated?: boolean
 }
 
-const GLOW_OPACITIES = [0.5, 0.25, 0.1, 0.04]
+const GLOW_OPACITIES = [0.25, 0.12, 0.05, 0.02]
 
 const SQRT2 = 1.41421356237
 const COS45 = SQRT2 / 2
@@ -220,7 +220,7 @@ export function AnimatedGridPattern({
           width={width - 1}
           height={height - 1}
           fill={primaryColor}
-          fillOpacity={1}
+          fillOpacity={0.45}
           className="transition-[fill-opacity] duration-150 ease-out"
         />
       )
