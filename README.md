@@ -52,9 +52,9 @@ npm run lint      # check code style
 ## Architecture
 
 | Layer | Tech |
-|---|---|
+|---|---|---|
 | Framework | [Next.js 16](https://nextjs.org) (App Router) |
-| Database | SQLite via `better-sqlite3` (local) / Turso (production) |
+| Database | SQLite via `@libsql/client` (local) / Turso (production) |
 | Styling | [Tailwind CSS v4](https://tailwindcss.com) |
 | Font | [Sora](https://fonts.google.com/specimen/Sora) |
 
@@ -66,6 +66,51 @@ npm run lint      # check code style
 | `GET` | `/s/:code` | 302-redirects to the original clean URL |
 
 **Sanitization** strips known tracking parameters, removes the URL fragment, and preserves everything else. Stripped params are shown to the user so they know what was removed.
+
+---
+
+## Deploy to Production
+
+Crisp uses **Turso** (libSQL) for production persistence and runs on **Vercel**.
+
+### 1. Create a Turso Database
+
+```bash
+# Install the Turso CLI
+curl -sSfL https://get.turso.dev | sh
+
+# Log in (opens browser)
+turso auth login
+
+# Create a database
+turso db create crisp
+
+# Get the connection details
+turso db show crisp --url        # → TURSO_DB_URL
+turso db tokens create crisp     # → TURSO_AUTH_TOKEN
+```
+
+Alternatively, create a database through the [Turso Dashboard](https://turso.tech).
+
+### 2. Deploy to Vercel
+
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2FAdamMostofi%2FCrisp)
+
+Or manually:
+
+1. Push the repo to GitHub: `git push origin main`
+2. Go to [vercel.com/new](https://vercel.com/new)
+3. Import the `AdamMostofi/Crisp` repository
+4. Add these environment variables:
+   - `TURSO_DB_URL` — your Turso database URL
+   - `TURSO_AUTH_TOKEN` — your Turso auth token
+5. Deploy
+
+Vercel auto-detects Next.js. No additional configuration needed.
+
+### Local Development
+
+Without setting `TURSO_DB_URL`, Crisp falls back to a local SQLite file at `./data/crisp.db`. Data is ephemeral on Vercel — always use Turso in production.
 
 ---
 
