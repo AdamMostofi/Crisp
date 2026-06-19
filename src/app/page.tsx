@@ -87,8 +87,10 @@ export default function Home() {
       height={40}
       primaryColor="var(--color-primary)"
       glowColor="var(--color-primary)"
-      gridLineOpacity={0.1}
+      gridLineColor="var(--color-primary)"
+      gridLineOpacity={0.15}
       glowRadius={2}
+      rotated
       className="min-h-dvh bg-bg"
     >
       <div className="flex flex-col items-center justify-center min-h-dvh px-4 py-12">

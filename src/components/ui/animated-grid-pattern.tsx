@@ -36,9 +36,13 @@ export interface AnimatedGridPatternProps extends ComponentPropsWithoutRef<"div"
   glowRadius?: number
   /** Base opacity of grid lines (default: 0.08) */
   gridLineOpacity?: number
+  /** Rotate the grid to create a diamond pattern (default: false) */
+  rotated?: boolean
 }
 
 const GLOW_OPACITIES = [0.5, 0.25, 0.1, 0.04]
+
+const SQRT2 = 1.41421356237
 
 export function AnimatedGridPattern({
   children,
@@ -54,6 +58,7 @@ export function AnimatedGridPattern({
   glowColor,
   glowRadius = 2,
   gridLineOpacity = 0.15,
+  rotated = false,
   ...props
 }: PropsWithChildren<AnimatedGridPatternProps>) {
   const id = useId()
@@ -64,24 +69,43 @@ export function AnimatedGridPattern({
     row: number
   } | null>(null)
 
-  const cols = Math.floor(dimensions.width / width)
-  const rows = Math.floor(dimensions.height / height)
+  const cx = dimensions.width / 2
+  const cy = dimensions.height / 2
 
-  // --- Mouse tracking ---
+  // When rotated, the grid visual cell count changes because the pattern
+  // is rotated 45°, so we compute a larger virtual grid to cover corners.
+  const rotScale = rotated ? SQRT2 : 1
+  const virtualWidth = dimensions.width * rotScale
+  const virtualHeight = dimensions.height * rotScale
+  const cols = Math.floor(virtualWidth / width)
+  const rows = Math.floor(virtualHeight / height)
+
+  // --- Mouse tracking with optional inverse rotation ---
 
   const handleMouseMove = useCallback(
     (e: React.MouseEvent) => {
       if (!containerRef.current) return
       const rect = containerRef.current.getBoundingClientRect()
-      const mouseX = e.clientX - rect.left + containerRef.current.scrollLeft
-      const mouseY = e.clientY - rect.top + containerRef.current.scrollTop
+      let mouseX = e.clientX - rect.left + containerRef.current.scrollLeft
+      let mouseY = e.clientY - rect.top + containerRef.current.scrollTop
+
+      if (rotated) {
+        // Inverse rotation by -45° around center to map screen coords → pattern space
+        const dx = mouseX - cx
+        const dy = mouseY - cy
+        const cos45 = SQRT2 / 2
+        const sin45 = SQRT2 / 2
+        mouseX = dx * cos45 + dy * sin45 + virtualWidth / 2
+        mouseY = -dx * sin45 + dy * cos45 + virtualHeight / 2
+      }
+
       const col = Math.floor(mouseX / width)
       const row = Math.floor(mouseY / height)
       if (col >= 0 && col < cols && row >= 0 && row < rows) {
         setHoveredCell({ col, row })
       }
     },
-    [width, height, cols, rows],
+    [width, height, cols, rows, rotated, cx, cy, virtualWidth, virtualHeight],
   )
 
   const handleMouseLeave = useCallback(() => {
@@ -157,6 +181,7 @@ export function AnimatedGridPattern({
             patternUnits="userSpaceOnUse"
             x={x}
             y={y}
+            patternTransform={rotated ? `rotate(45)` : undefined}
           >
             <path
               d={`M.5 ${height}V.5H${width}`}
@@ -173,6 +198,7 @@ export function AnimatedGridPattern({
         <rect width="100%" height="100%" fill={`url(#${id})`} />
 
         {/* Glowing cells */}
+        <g transform={rotated ? `rotate(45, ${cx}, ${cy})` : undefined}>
         {visibleCells.map(cell => {
           const isHovered = cell.distance === 0
           if (isHovered) {
@@ -207,6 +233,7 @@ export function AnimatedGridPattern({
             />
           )
         })}
+        </g>
       </svg>
       {children}
     </div>
